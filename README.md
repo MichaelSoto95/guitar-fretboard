@@ -1,2 +1,2 @@
 # guitar-fretboard
-mini to help the guitar fretboard
+learn the guitar fretboard
