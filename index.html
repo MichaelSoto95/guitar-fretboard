@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Guitar Note & Scale Generator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* style.css content starts here */
+
+        body {
+            font-family: 'Inter', sans-serif;
+            text-align: center;
+            padding: 20px;
+            background-color: #f0f4f8; /* Light blue-gray background */
+            color: #334155; /* Dark text */
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        h1 {
+            margin-bottom: 2rem;
+            font-size: 2.5rem;
+            color: #1e3a8a; /* Darker blue for heading */
+        }
+
+        .button-container, .scale-controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+
+        button {
+            padding: 0.75rem 1.5rem;
+            font-size: 1.1em;
+            cursor: pointer;
+            border: none;
+            background-color: #3b82f6; /* Blue */
+            color: white;
+            border-radius: 0.5rem; /* Rounded corners */
+            transition: background-color 0.2s ease, transform 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        button:hover {
+            background-color: #2563eb; /* Darker blue on hover */
+            transform: translateY(-2px);
+        }
+
+        #result {
+            font-size: 2.5em;
+            margin-bottom: 2rem;
+            color: #1d4ed8; /* Strong blue for result */
+            font-weight: bold;
+            min-height: 2em; /* Ensure consistent height */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: #e0f2fe; /* Light blue background for result */
+            border-radius: 0.75rem;
+            padding: 1rem;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        #fretboard {
+            margin: 0 auto;
+            border-collapse: separate; /* Use separate for rounded cells */
+            border-spacing: 0; /* Remove default spacing */
+            min-width: 780px; /* Adjust as needed for larger screens */
+            max-width: 95%; /* Make it responsive */
+            width: fit-content;
+            overflow-x: auto; /* Enable horizontal scrolling on small screens */
+            box-shadow: 0 10px 15px rgba(0, 0, 0, 0.1);
+            border-radius: 0.75rem; /* Overall table rounded corners */
+            background-color: #ffffff;
+        }
+
+        #fretboard th,
+        #fretboard td {
+            border: 1px solid #cbd5e1; /* Light gray border */
+            width: 60px;
+            height: 40px;
+            padding: 0;
+            text-align: center;
+            vertical-align: middle;
+            box-sizing: border-box;
+            font-size: 0.9em;
+            position: relative; /* For dot positioning */
+        }
+
+        #fretboard td:hover {
+            background-color: #f0f9ff; /* Very light blue on hover */
+            cursor: pointer;
+        }
+
+        #fretboard th {
+            background-color: #e2e8f0; /* Lighter gray for headers */
+            font-weight: bold;
+            color: #475569;
+        }
+
+        .string-label {
+            font-weight: bold;
+            background-color: #dbeafe; /* Lighter blue for string labels */
+            color: #1e3a8a;
+            border-right: 2px solid #94a3b8; /* Stronger right border */
+            position: sticky;
+            left: 0;
+            z-index: 1; /* Ensure it stays on top */
+        }
+
+        /* Specific fret dots */
+        td[data-fret="3"], td[data-fret="5"], td[data-fret="7"], td[data-fret="9"] {
+            position: relative;
+        }
+
+        td[data-fret="3"]::after, td[data-fret="5"]::after, td[data-fret="7"]::after, td[data-fret="9"]::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #94a3b8; /* Fret dot color */
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0; /* Ensure dot is behind text */
+        }
+
+        td[data-fret="12"] {
+            position: relative;
+        }
+
+        td[data-fret="12"]::before, td[data-fret="12"]::after {
+            content: '';
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #94a3b8;
+            border-radius: 50%;
+            top: 30%; /* Adjust for two dots */
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 0;
+        }
+
+        td[data-fret="12"]::after {
+            top: 70%; /* Adjust for two dots */
+        }
+
+        /* Highlight color for random note */
+        .highlight {
+            background-color: #ef4444; /* Red for highlighting */
+            color: white;
+            font-weight: bold;
+            animation: pulse 1s infinite alternate; /* Subtle pulse effect */
+        }
+
+        @keyframes pulse {
+            from {
+                box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+            }
+            to {
+                box-shadow: 0 0 0 8px rgba(239, 68, 68, 0);
+            }
+        }
+
+        /* Specific highlight colors for intervals */
+        .highlight-root { background-color: #4CAF50; } /* Green */
+        .highlight-minor-2nd { background-color: #FF5722; } /* Deep Orange */
+        .highlight-major-2nd { background-color: #2196F3; } /* Blue */
+        .highlight-minor-3rd { background-color: #9C27B0; } /* Purple */
+        .highlight-major-3rd { background-color: #FFC107; } /* Amber */
+        .highlight-perfect-4th { background-color: #00BCD4; } /* Cyan */
+        .highlight-tritone { background-color: #F44336; } /* Red */
+        .highlight-perfect-5th { background-color: #8BC34A; } /* Light Green */
+        .highlight-minor-6th { background-color: #673AB7; } /* Deep Purple */
+        .highlight-major-6th { background-color: #FF9800; } /* Orange */
+        .highlight-minor-7th { background-color: #795548; } /* Brown */
+        .highlight-major-7th { background-color: #E91E63; } /* Pink */
+
+
+        select {
+            padding: 0.5rem 1rem;
+            font-size: 1em;
+            border: 1px solid #cbd5e1;
+            border-radius: 0.5rem;
+            background-color: white;
+            color: #334155;
+            cursor: pointer;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        /* Responsive adjustments */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 2rem;
+            }
+            .button-container, .scale-controls {
+                flex-direction: column;
+                gap: 0.75rem;
+            }
+            button, select {
+                width: 80%; /* Make buttons and selects wider on small screens */
+                margin: 0 auto;
+            }
+            #fretboard {
+                min-width: unset; /* Allow table to shrink */
+                width: 100%;
+            }
+            #fretboard th, #fretboard td {
+                width: 50px; /* Slightly smaller cells */
+                height: 35px;
+                font-size: 0.8em;
+            }
+            .string-label {
+                width: 80px; /* Adjust label width */
+            }
+            #result {
+                font-size: 1.5em; /* Smaller font for result on smaller screens */
+                padding: 0.5rem;
+            }
+            #result h2 {
+                font-size: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+            #result span {
+                font-size: 0.8em;
+                padding: 0.3rem 0.6rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.8rem;
+            }
+            #result {
+                font-size: 1.2em;
+                padding: 0.5rem;
+            }
+            #result h2 {
+                font-size: 1.3rem;
+            }
+            #result span {
+                font-size: 0.7em;
+                padding: 0.2rem 0.4rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>Random Guitar Note & Scale Generator</h1>
+
+    <div class="button-container">
+        <button onclick="generateRandomNote()">Generate Random Note</button>
+        <button onclick="highlightAllMatches()">Highlight All Matching Notes</button>
+    </div>
+
+    <div class="scale-controls">
+        <select id="rootNote"></select>
+        <select id="scaleType"></select>
+        <button onclick="highlightSelectedScale()">Highlight Scale</button>
+    </div>
+
+    <div id="result">Select a note or scale to begin!</div>
+
+    <table id="fretboard"></table>
+
+    <script>
+        // script.js content starts here
+
+        // Chromatic notes including enharmonic equivalents
+        const chromaticNotesEnharmonic = [
+            'C', 'C#/Db', 'D', 'D#/Eb', 'E',
+            'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B'
+        ];
+
+        // Standard guitar string names from high E to low E
+        const guitarStrings = ['e', 'B', 'G', 'D', 'A', 'E'];
+
+        // Full fretboard representation (notes on each string for 13 frets including open)
+        const guitarFretboard = [
+            ['E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B', 'C', 'C#/Db', 'D', 'D#/Eb', 'E'], // 1st string (high e)
+            ['B', 'C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B'], // 2nd string
+            ['G', 'G#/Ab', 'A', 'A#/Bb', 'B', 'C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G'], // 3rd string
+            ['D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B', 'C', 'C#/Db', 'D'], // 4th string
+            ['A', 'A#/Bb', 'B', 'C', 'C#/Db', 'D', 'D#/Eb', 'E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A'], // 5th string
+            ['E', 'F', 'F#/Gb', 'G', 'G#/Ab', 'A', 'A#/Bb', 'B', 'C', 'C#/Db', 'D', 'D#/Eb', 'E']  // 6th string (low E)
+        ];
+
+        let lastGeneratedNote = null; // Stores the primary spelling of the last randomly generated note
+
+        const fretboard = document.getElementById('fretboard');
+
+        // Define common scales and chords by their semitone intervals from the root,
+        // along with their common intervallic names.
+        const scales = {
+            'Major': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 2, name: 'Major 2nd' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 5, name: 'Perfect 4th' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 9, name: 'Major 6th' },
+                { semitones: 11, name: 'Major 7th' }
+            ],
+            'Minor Pentatonic': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 5, name: 'Perfect 4th' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Blues': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 5, name: 'Perfect 4th' },
+                { semitones: 6, name: 'Diminished 5th (Blues)' }, // The "Blues Note"
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Natural Minor': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 2, name: 'Major 2nd' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 5, name: 'Perfect 4th' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 8, name: 'Minor 6th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Harmonic Minor': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 2, name: 'Major 2nd' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 5, name: 'Perfect 4th' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 8, name: 'Minor 6th' },
+                { semitones: 11, name: 'Major 7th' } // Raised 7th
+            ],
+            'Dorian': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 2, name: 'Major 2nd' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 5, name: 'Perfect 4th' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 9, name: 'Major 6th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Mixolydian': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 2, name: 'Major 2nd' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 5, name: 'Perfect 4th' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 9, name: 'Major 6th' },
+                { semitones: 10, name: 'Minor 7th' } // Flat 7th
+            ],
+            'Lydian': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 2, name: 'Major 2nd' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 6, name: 'Augmented 4th' }, // Raised 4th
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 9, name: 'Major 6th' },
+                { semitones: 11, name: 'Major 7th' }
+            ],
+            'Phrygian': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 1, name: 'Minor 2nd' }, // Flat 2nd
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 5, name: 'Perfect 4th' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 8, name: 'Minor 6th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Locrian': [
+                { semitones: 0, name: 'Root (1st)' },
+                { semitones: 1, name: 'Minor 2nd' }, // Flat 2nd
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 5, name: 'Diminished 4th' }, // Or Perfect 4th, depending on interpretation
+                { semitones: 6, name: 'Diminished 5th' }, // Tritone
+                { semitones: 8, name: 'Minor 6th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            // --- Chord Definitions ---
+            'Major Chord': [
+                { semitones: 0, name: 'Root' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 7, name: 'Perfect 5th' }
+            ],
+            'Minor Chord': [
+                { semitones: 0, name: 'Root' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 7, name: 'Perfect 5th' }
+            ],
+            'Augmented Chord': [
+                { semitones: 0, name: 'Root' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 8, name: 'Augmented 5th' }
+            ],
+            'Diminished Chord': [
+                { semitones: 0, name: 'Root' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 6, name: 'Diminished 5th' }
+            ],
+            'Dominant 7th': [
+                { semitones: 0, name: 'Root' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Major 7th': [
+                { semitones: 0, name: 'Root' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 11, name: 'Major 7th' }
+            ],
+            'Minor 7th': [
+                { semitones: 0, name: 'Root' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Minor 7th Flat 5 (Half-Dim)': [
+                { semitones: 0, name: 'Root' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 6, name: 'Diminished 5th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Diminished 7th': [
+                { semitones: 0, name: 'Root' },
+                { semitones: 3, name: 'Minor 3rd' },
+                { semitones: 6, name: 'Diminished 5th' },
+                { semitones: 9, name: 'Diminished 7th' }
+            ],
+            'Dominant 9th': [ // Implies a 7th chord with added 9th
+                { semitones: 0, name: 'Root' },
+                { semitones: 2, name: 'Major 9th (2nd)' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Dominant 11th': [ // Implies a 7th, 9th with added 11th
+                { semitones: 0, name: 'Root' },
+                { semitones: 2, name: 'Major 9th (2nd)' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 5, name: 'Perfect 11th (4th)' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 10, name: 'Minor 7th' }
+            ],
+            'Dominant 13th': [ // Implies a 7th, 9th, 11th with added 13th
+                { semitones: 0, name: 'Root' },
+                { semitones: 2, name: 'Major 9th (2nd)' },
+                { semitones: 4, name: 'Major 3rd' },
+                { semitones: 5, name: 'Perfect 11th (4th)' },
+                { semitones: 7, name: 'Perfect 5th' },
+                { semitones: 9, name: 'Major 13th (6th)' },
+                { semitones: 10, name: 'Minor 7th' }
+            ]
+        };
+
+        /**
+         * Initializes the fretboard table structure and populates dropdowns.
+         * This function runs after the DOM is fully loaded.
+         */
+        window.onload = function () {
+            // Create header row for frets
+            let headerRowHTML = '<tr><th class="string-label">String\\Fret</th>';
+            for (let fret = 0; fret <= 12; fret++) {
+                headerRowHTML += `<th>${fret}</th>`;
+            }
+            headerRowHTML += '</tr>';
+            fretboard.innerHTML += headerRowHTML;
+
+            // Create rows for each string and populate with notes
+            guitarFretboard.forEach((stringNotes, stringIndex) => {
+                const stringLabel = guitarStrings[stringIndex]; // Get string label (e, B, G, D, A, E)
+                let rowHTML = `<tr><td class="string-label">${stringLabel} String</td>`;
+
+                stringNotes.forEach((note, fretIndex) => {
+                    // Add data attributes for easy targeting of cells
+                    rowHTML += `<td data-string="${stringIndex}" data-fret="${fretIndex}">${note}</td>`;
+                });
+
+                rowHTML += '</tr>';
+                fretboard.innerHTML += rowHTML;
+            });
+
+            // Populate the root note dropdown
+            const rootNoteSelect = document.getElementById('rootNote');
+            chromaticNotesEnharmonic.forEach(note => {
+                const option = document.createElement('option');
+                // Use the first spelling (e.g., 'C' for 'C#/Db') as the option value
+                option.value = note.split('/')[0];
+                option.textContent = note; // Display both enharmonic spellings
+                rootNoteSelect.appendChild(option);
+            });
+
+            // Populate the scale type dropdown
+            const scaleTypeSelect = document.getElementById('scaleType');
+            for (const scaleName in scales) {
+                const option = document.createElement('option');
+                option.value = scaleName;
+                option.textContent = scaleName; // Display just the name for chords/scales
+                scaleTypeSelect.appendChild(option);
+            }
+        };
+
+        /**
+         * Gets the numerical index of a note within the chromatic scale.
+         * Handles enharmonic equivalents.
+         * @param {string} note - The note to find (e.g., 'C', 'D#', 'Gb').
+         * @returns {number} The index of the note (0-11), or -1 if not found.
+         */
+        function getNoteIndex(note) {
+            for (let i = 0; i < chromaticNotesEnharmonic.length; i++) {
+                if (chromaticNotesEnharmonic[i].split('/').includes(note)) {
+                    return i;
+                }
+            }
+            return -1;
+        }
+
+        /**
+         * Gets the note string (with enharmonic equivalent if applicable) from a chromatic index.
+         * @param {number} index - The index in the chromatic scale.
+         * @returns {string} The note string (e.g., 'C', 'C#/Db').
+         */
+        function getNoteFromIndex(index) {
+            // Use modulo 12 to loop back for octaves
+            return chromaticNotesEnharmonic[index % 12];
+        }
+
+        /**
+         * Calculates all the notes belonging to a specific scale or chord for a given root note,
+         * along with their intervallic names.
+         * @param {string} rootNote - The root note of the scale/chord (e.g., 'A', 'C').
+         * @param {string} type - The type of scale/chord (e.g., 'Major', 'Minor 7th').
+         * @returns {Array<{note: string, intervalName: string, semitones: number}>} An array of objects,
+         * each containing the note string, its interval name, and its semitone value from the root.
+         */
+        function getScaleNotesWithIntervals(rootNote, type) {
+            const rootIndex = getNoteIndex(rootNote);
+            const definition = scales[type];
+
+            if (rootIndex === -1 || !definition) {
+                console.error('Invalid root note or type provided.');
+                return [];
+            }
+
+            const notesInStructure = [];
+            definition.forEach(intervalDef => {
+                const noteIndex = (rootIndex + intervalDef.semitones) % 12;
+                notesInStructure.push({
+                    note: getNoteFromIndex(noteIndex),
+                    intervalName: intervalDef.name,
+                    semitones: intervalDef.semitones
+                });
+            });
+
+            return notesInStructure;
+        }
+
+        /**
+         * Generates a random note on the fretboard, highlights it, and displays its details.
+         */
+        function generateRandomNote() {
+            clearHighlights(); // Clear any existing highlights
+
+            const stringIndex = Math.floor(Math.random() * 6); // 0-5 for strings
+            const fretIndex = Math.floor(Math.random() * 13);  // 0-12 for frets
+            const note = guitarFretboard[stringIndex][fretIndex]; // Get the note
+
+            // Store only the primary spelling for 'Highlight All Matching Notes' functionality
+            lastGeneratedNote = note.split('/')[0];
+
+            const resultText = `${guitarStrings[stringIndex]} String - Fret ${fretIndex} - ${note}`;
+            document.getElementById('result').innerText = resultText;
+
+            // Find and highlight the specific cell
+            const cell = document.querySelector(
+                `td[data-string="${stringIndex}"][data-fret="${fretIndex}"]`
+            );
+
+            if (cell) {
+                cell.classList.add('highlight'); // Use the generic highlight for random note
+            }
+        }
+
+        /**
+         * Highlights all occurrences of the last randomly generated note on the fretboard.
+         */
+        function highlightAllMatches() {
+            if (!lastGeneratedNote) {
+                document.getElementById('result').innerText = "Generate a note first!";
+                return;
+            }
+
+            clearHighlights(); // Clear previous highlights
+
+            document.querySelectorAll('#fretboard td').forEach(cell => {
+                // Split cell text to check for enharmonic matches
+                const cellNotes = cell.textContent.split('/');
+                if (cellNotes.includes(lastGeneratedNote)) {
+                    cell.classList.add('highlight'); // Use the generic highlight for matching notes
+                }
+            });
+
+            document.getElementById('result').innerText = `All ${lastGeneratedNote} notes highlighted.`;
+        }
+
+        /**
+         * Highlights all notes belonging to the selected scale or chord on the fretboard with specific colors
+         * based on their intervallic value. Also displays the interval names in the result area.
+         */
+        function highlightSelectedScale() { // Renamed to highlightSelectedMusicalStructure conceptually
+            clearHighlights(); // Clear any previous highlights
+
+            const rootNoteSelect = document.getElementById('rootNote');
+            const scaleTypeSelect = document.getElementById('scaleType'); // Now also for chords
+
+            const selectedRootNote = rootNoteSelect.value;
+            const selectedType = scaleTypeSelect.value; // Renamed to selectedType for generality
+
+            if (!selectedRootNote || !selectedType) {
+                document.getElementById('result').innerText = "Please select both a root note and a type (scale/chord).";
+                return;
+            }
+
+            const notesWithIntervals = getScaleNotesWithIntervals(selectedRootNote, selectedType);
+
+            // Map interval semitone values to specific color classes for highlighting cells.
+            // These classes are defined in style.css
+            const intervalColorMap = {
+                0: 'highlight-root',        // Root (1st)
+                1: 'highlight-minor-2nd',   // Minor 2nd
+                2: 'highlight-major-2nd',   // Major 2nd
+                3: 'highlight-minor-3rd',   // Minor 3rd
+                4: 'highlight-major-3rd',   // Major 3rd
+                5: 'highlight-perfect-4th', // Perfect 4th
+                6: 'highlight-tritone',     // Diminished 5th / Augmented 4th (Blues note or Locrian 5th)
+                7: 'highlight-perfect-5th', // Perfect 5th
+                8: 'highlight-minor-6th',   // Minor 6th (Augmented 5th as well)
+                9: 'highlight-major-6th',   // Major 6th (Diminished 7th as well)
+                10: 'highlight-minor-7th',  // Minor 7th
+                11: 'highlight-major-7th'   // Major 7th
+            };
+
+            // Create a detailed map for efficient cell highlighting lookup.
+            // Key: primary note spelling (e.g., 'C'), Value: { intervalName, colorClass }
+            const notesToHighlightMap = new Map();
+            notesWithIntervals.forEach(item => {
+                const primaryNote = item.note.split('/')[0];
+                const secondaryNote = item.note.split('/')[1]; // Could be undefined for non-enharmonic notes
+
+                const colorClass = intervalColorMap[item.semitones];
+
+                // Store for primary spelling
+                if (!notesToHighlightMap.has(primaryNote)) {
+                    notesToHighlightMap.set(primaryNote, {
+                        intervalName: item.intervalName,
+                        colorClass: colorClass
+                    });
+                }
+                // Store for secondary spelling if it exists (e.g., 'Db' for 'C#/Db')
+                if (secondaryNote && !notesToHighlightMap.has(secondaryNote)) {
+                     notesToHighlightMap.set(secondaryNote, {
+                        intervalName: item.intervalName,
+                        colorClass: colorClass
+                    });
+                }
+            });
+
+            // Display the notes with their interval names in the result div
+            const resultDiv = document.getElementById('result');
+            let resultHtml = `<h2 class="text-2xl font-bold mb-4 text-blue-800">${selectedRootNote} ${selectedType}</h2><div class="flex flex-wrap justify-center gap-x-4 gap-y-2">`;
+            notesWithIntervals.forEach(item => {
+                // Apply the color class from intervalColorMap to each span in the result display
+                resultHtml += `<span class="px-2 py-1 rounded-md shadow-sm text-white ${intervalColorMap[item.semitones]}">${item.note} (${item.intervalName})</span>`;
+            });
+            resultHtml += `</div>`;
+            resultDiv.innerHTML = resultHtml;
+
+
+            // Iterate through all fretboard cells and apply appropriate highlighting
+            document.querySelectorAll('#fretboard td').forEach(cell => {
+                const cellNotes = cell.textContent.split('/'); // Get both enharmonic spellings from the cell
+
+                let highlightInfo = null;
+                // Check if any of the cell's notes are in the structure (handling enharmonics)
+                for (const cn of cellNotes) {
+                    if (notesToHighlightMap.has(cn)) {
+                        highlightInfo = notesToHighlightMap.get(cn);
+                        break; // Found a match, no need to check further enharmonics for this cell
+                    }
+                }
+
+                if (highlightInfo) {
+                    // Add the specific highlight class based on the interval
+                    cell.classList.add(highlightInfo.colorClass);
+                    // Add interval name to the cell's title for hover information
+                    cell.title = `${cell.textContent} (${highlightInfo.intervalName})`;
+                }
+            });
+        }
+
+        /**
+         * Clears all 'highlight' and specific interval highlight classes from fretboard cells.
+         */
+        function clearHighlights() {
+            // Remove all specific interval highlight classes
+            document.querySelectorAll('[class*="highlight-"]').forEach(cell => {
+                // Filter out classes that start with 'highlight-'
+                cell.className = cell.className.split(' ').filter(c => !c.startsWith('highlight-')).join(' ');
+                cell.removeAttribute('title'); // Remove the title attribute used for interval names
+            });
+
+            // Remove the generic 'highlight' class (used for random note generation)
+            document.querySelectorAll('.highlight').forEach(cell => {
+                cell.classList.remove('highlight');
+            });
+        }
+    </script>
+</body>
+</html>
